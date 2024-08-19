@@ -1,0 +1,50 @@
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
+                             http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1">
+
+    <!-- Security Constraints -->
+    <security-constraint>
+        <web-resource-collection>
+            <web-resource-name>Protected Area</web-resource-name>
+            <url-pattern>/protected/*</url-pattern>
+        </web-resource-collection>
+        <auth-constraint>
+            <role-name>admin</role-name>
+        </auth-constraint>
+    </security-constraint>
+
+    <security-constraint>
+        <web-resource-collection>
+        <web-resource-name>restricted methods</web-resource-name>
+        <url-pattern>/hostintegrator/*</url-pattern>
+            <http-method>DELETE</http-method>
+            <http-method>OPTIONS</http-method>
+            <http-method>PATCH</http-method>
+            <http-method>PUT</http-method>
+            <http-method>TRACE</http-method>
+        </web-resource-collection>
+        <auth-constraint/>
+    </security-constraint>
+
+    <!-- Login Configuration -->
+    <login-config>
+        <auth-method>BASIC</auth-method>
+        <realm-name>MyRealm</realm-name>
+    </login-config>
+
+    <!-- Security Roles -->
+    <security-role>
+        <role-name>admin</role-name>
+    </security-role>
+
+    <!-- EJB References -->
+    <ejb-ref>
+        <ejb-ref-name>ejb/MyEJB</ejb-ref-name>
+        <ejb-ref-type>Session</ejb-ref-type>
+        <home>com.example.MyEJBHome</home>
+        <remote>com.example.MyEJB</remote>
+    </ejb-ref>
+
+</web-app>

@@ -1,0 +1,9 @@
+https://aws.amazon.com/compare/the-difference-between-agile-devops/
+https://www.atlassian.com/devops/what-is-devops/devops-culture#:~:text=DevOps%20is%20an%20organizational%20culture,%2C%20and%20cross%2Dteam%20collaboration.
+https://www.dynatrace.com/monitoring/solutions/devops/?utm_source=google&utm_medium=cpc&utm_term=devops%20technologies&utm_campaign=us-devops-devops&utm_content=none&utm_campaign_id=15210351545&gclsrc=aw.ds&gad_source=1&gclid=EAIaIQobChMIiZbF5si9iAMVFRGtBh16MRZ6EAAYASAAEgI4fvD_BwE
+https://builtin.com/articles/devops-culture
+https://aws.amazon.com/devops/what-is-devops/
+https://about.gitlab.com/topics/devops/
+
+
+

@@ -1,0 +1,225 @@
+Step 1: Create the Interceptor
+First, create a class that implements the Handler interface. This class will intercept the SOAP messages and sanitize the input fields.
+
+---
+
+import javax.xml.namespace.QName;
+import javax.xml.ws.handler.MessageContext;
+import javax.xml.ws.handler.soap.SOAPHandler;
+import javax.xml.ws.handler.soap.SOAPMessageContext;
+import javax.xml.soap.SOAPMessage;
+import javax.xml.soap.SOAPBody;
+import javax.xml.soap.SOAPElement;
+import javax.xml.soap.SOAPException;
+import java.util.Set;
+
+public class InputSanitizerInterceptor implements SOAPHandler<SOAPMessageContext> {
+
+    @Override
+    public boolean handleMessage(SOAPMessageContext context) {
+        Boolean isOutbound = (Boolean) context.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY);
+        if (!isOutbound) {
+            try {
+                SOAPMessage soapMessage = context.getMessage();
+                SOAPBody soapBody = soapMessage.getSOAPBody();
+                sanitize(soapBody);
+            } catch (SOAPException e) {
+                e.printStackTrace();
+            }
+        }
+        return true;
+    }
+
+    private void sanitize(SOAPElement element) throws SOAPException {
+        for (SOAPElement child : (Iterable<SOAPElement>) element.getChildElements()) {
+            if (child.hasChildNodes()) {
+                sanitize(child);
+            } else {
+                String content = child.getValue();
+                if (content != null) {
+                    child.setValue(content.replaceAll("[^\\w\\s]", ""));
+                }
+            }
+        }
+    }
+
+    @Override
+    public boolean handleFault(SOAPMessageContext context) {
+        return true;
+    }
+
+    @Override
+    public void close(MessageContext context) {
+    }
+
+    @Override
+    public Set<QName> getHeaders() {
+        return null;
+    }
+}
+
+---
+Step 2: Configure the Handler in sun-jaxws.xml
+Next, configure the handler in your sun-jaxws.xml file.
+---
+
+<?xml version="1.0" encoding="UTF-8"?>
+<endpoints xmlns="http://java.sun.com/xml/ns/jax-ws/ri/runtime" version="2.0">
+    <endpoint name="YourService" implementation="com.example.YourServiceImpl" url-pattern="/yourService">
+        <handler-chains>
+            <handler-chain>
+                <handler>
+                    <handler-class>com.example.InputSanitizerInterceptor</handler-class>
+                </handler>
+            </handler-chain>
+        </handler-chains>
+    </endpoint>
+</endpoints>
+
+---
+
+Step 3: Build with Ant
+Ensure your build.xml includes the necessary tasks to compile and package your application. Here’s a basic example:
+
+---
+
+<project name="YourProject" default="compile" basedir=".">
+    <property name="src.dir" value="src"/>
+    <property name="build.dir" value="build"/>
+    <property name="classes.dir" value="${build.dir}/classes"/>
+    <property name="lib.dir" value="lib"/>
+
+    <target name="clean">
+        <delete dir="${build.dir}"/>
+    </target>
+
+    <target name="compile">
+        <mkdir dir="${classes.dir}"/>
+        <javac srcdir="${src.dir}" destdir="${classes.dir}" includeantruntime="false">
+            <classpath>
+                <fileset dir="${lib.dir}" includes="**/*.jar"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="package" depends="compile">
+        <mkdir dir="${build.dir}/dist"/>
+        <jar destfile="${build.dir}/dist/YourProject.jar" basedir="${classes.dir}"/>
+    </target>
+</project>
+
+-------------- option2
+
+Step 1: Add OWASP ESAPI Library
+First, download the OWASP ESAPI library and add it to your project’s lib directory. You can find the library here.
+
+Step 2: Create the Interceptor
+Create a class that implements the AbstractPhaseInterceptor class from CXF. This class will intercept the SOAP messages and sanitize the input fields.
+
+---
+
+import org.apache.cxf.interceptor.AbstractPhaseInterceptor;
+import org.apache.cxf.interceptor.Fault;
+import org.apache.cxf.message.Message;
+import org.apache.cxf.phase.Phase;
+import org.apache.cxf.binding.soap.SoapMessage;
+import org.apache.cxf.binding.soap.SoapBody;
+import org.apache.cxf.binding.soap.SoapFault;
+import org.apache.cxf.binding.soap.SoapHeader;
+import org.apache.cxf.binding.soap.SoapVersion;
+import org.apache.cxf.helpers.DOMUtils;
+import org.owasp.esapi.ESAPI;
+import org.owasp.esapi.errors.ValidationException;
+import org.w3c.dom.Element;
+
+import java.util.List;
+
+public class InputSanitizerInterceptor extends AbstractPhaseInterceptor<SoapMessage> {
+
+    public InputSanitizerInterceptor() {
+        super(Phase.PRE_PROTOCOL);
+    }
+
+    @Override
+    public void handleMessage(SoapMessage message) throws Fault {
+        SoapBody body = message.getSOAPBody();
+        sanitize(body);
+    }
+
+    private void sanitize(Element element) throws Fault {
+        List<Element> children = DOMUtils.getChildren(element);
+        for (Element child : children) {
+            if (child.hasChildNodes()) {
+                sanitize(child);
+            } else {
+                String content = child.getTextContent();
+                if (content != null) {
+                    try {
+                        String sanitizedContent = ESAPI.validator().getValidInput("Sanitize", content, "SafeString", 200, false);
+                        child.setTextContent(sanitizedContent);
+                    } catch (ValidationException e) {
+                        throw new SoapFault("Invalid input detected", e, SoapVersion.SOAP_11.getSender());
+                    }
+                }
+            }
+        }
+    }
+}
+
+---
+
+Step 3: Configure the Interceptor in cxf.xml
+Next, configure the interceptor in your cxf.xml file.
+
+---
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:jaxws="http://cxf.apache.org/jaxws"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans.xsd
+           http://cxf.apache.org/jaxws
+           http://cxf.apache.org/schemas/jaxws.xsd">
+
+    <jaxws:endpoint id="yourService" implementor="com.example.YourServiceImpl" address="/yourService">
+        <jaxws:inInterceptors>
+            <ref bean="inputSanitizerInterceptor"/>
+        </jaxws:inInterceptors>
+    </jaxws:endpoint>
+
+    <bean id="inputSanitizerInterceptor" class="com.example.InputSanitizerInterceptor"/>
+</beans>
+
+---
+
+Step 4: Build with Ant
+Ensure your build.xml includes the necessary tasks to compile and package your application. Here’s a basic example:
+
+---
+
+<project name="YourProject" default="compile" basedir=".">
+    <property name="src.dir" value="src"/>
+    <property name="build.dir" value="build"/>
+    <property name="classes.dir" value="${build.dir}/classes"/>
+    <property name="lib.dir" value="lib"/>
+
+    <target name="clean">
+        <delete dir="${build.dir}"/>
+    </target>
+
+    <target name="compile">
+        <mkdir dir="${classes.dir}"/>
+        <javac srcdir="${src.dir}" destdir="${classes.dir}" includeantruntime="false">
+            <classpath>
+                <fileset dir="${lib.dir}" includes="**/*.jar"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="package" depends="compile">
+        <mkdir dir="${build.dir}/dist"/>
+        <jar destfile="${build.dir}/dist/YourProject.jar" basedir="${classes.dir}"/>
+    </target>
+</project>
+

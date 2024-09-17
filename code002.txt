@@ -1,0 +1,20 @@
+import org.apache.cxf.interceptor.Fault;
+import org.apache.cxf.interceptor.AbstractPhaseInterceptor;
+import org.apache.cxf.message.Message;
+import org.apache.cxf.phase.Phase;
+
+public class CustomInterceptor extends AbstractPhaseInterceptor<Message> {
+
+    public CustomInterceptor() {
+        super(Phase.PRE_PROTOCOL);
+    }
+
+    @Override
+    public void handleMessage(Message message) throws Fault {
+        Exception exception = message.getContent(Exception.class);
+        if (exception != null && exception.getMessage().contains("unmarshalling error")) {
+            Fault fault = new Fault(new Exception("Custom unmarshalling error message"));
+            message.setContent(Exception.class, fault);
+        }
+    }
+}

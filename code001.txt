@@ -1,0 +1,22 @@
+import org.apache.cxf.interceptor.Fault;
+import org.apache.cxf.interceptor.AbstractSoapInterceptor;
+import org.apache.cxf.message.Message;
+import org.apache.cxf.phase.Phase;
+import org.owasp.encoder.Encode;
+
+public class SanitizeInterceptor extends AbstractSoapInterceptor {
+
+    public SanitizeInterceptor() {
+        super(Phase.PRE_INVOKE);
+    }
+
+    @Override
+    public void handleMessage(Message message) throws Fault {
+        // Example of sanitizing input fields
+        String input = (String) message.get("inputField");
+        if (input != null) {
+            String sanitizedInput = Encode.forHtml(input);
+            message.put("inputField", sanitizedInput);
+        }
+    }
+}
